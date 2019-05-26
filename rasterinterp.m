@@ -45,6 +45,52 @@ function Zq = rasterinterp(Z,R,Rq,method)
 %
 %   See also mapinterp, geointerp, interp2, griddedInterpolant, meshgrid
 
+%   Examples
+%   
+%   In practice, rasterinterp is expected to be used with external geotiff
+%   data files that are read into matlab using geotiffread, which returns
+%   the Map/Geographic Cells Reference object required as input to
+%   rasterinterp. For example, one might have a raster dataset representing
+%   topography, and a second raster dataset representing a climate variable
+%   such as air temperature. The two rasters overlap, but have different
+%   spatial extents and/or resolution. Use rasterinterp to co-register the
+%   two rasters to the same spatial extent and resolution so they can be
+%   compared on a cell by cell basis, which requires interpolation to a new
+%   grid. The new grid can be the underlying grid of one of the rasters, or
+%   it can be a new grid altogether. In the examples below, the in-built
+%   'topo' dataset is used, and the Geographic Cells Reference object is
+%   built from scratch to illustrate the flexibility of rasterinterp, which
+%   can be used to subset or resample one raster to the extent and/or
+%   resolution of a second raster, or can be used to subset or resample
+%   one raster to any desired spatial extent or resolution.
+
+%   Example 1 
+%   ---------
+%   % subset global topographic data to northern hemisphere
+%   load topo; Z = topo; clear topo
+%   R = georefcells(topolatlim,topolonlim,size(Z));
+%   newlatlim = [0 90];
+%   newlonlim = [0 360];
+%   newsize = [newlatlim(2) newlonlim(2)];
+%   Rq = georefcells(newlatlim,newlonlim,newsize);
+%   Zq = rasterinterp(Z,R,Rq);
+%   figure; geoshow(Z,R,'DisplayType','surface'); title('Original');
+%   figure; geoshow(Zq,Rq,'DisplayType','surface'); title('Subset');
+
+%   Example 2 
+%   ---------
+%   % subset global topographic data to northern hemisphere and resample
+%   the data to 3x finer resolution
+%   load topo; Z = topo; clear topo
+%   R = georefcells(topolatlim,topolonlim,size(Z));
+%   newlatlim = [0 90];
+%   newlonlim = [0 360];
+%   newsize = 3.*[newlatlim(2) newlonlim(2)];
+%   Rq = georefcells(newlatlim,newlonlim,newsize);
+%   Zq = rasterinterp(Z,R,Rq);
+%   figure; geoshow(Z,R,'DisplayType','surface'); title('Original');
+%   figure; geoshow(Zq,Rq,'DisplayType','surface'); title('Subset and Resampled');
+
 %% Check inputs
 
 % Confirm Z is a numeric or logical grid of size R.RasterSize
@@ -76,7 +122,21 @@ assert(strcmp(R.CoordinateSystemType,Rq.CoordinateSystemType), ...
                         'geographic coordinate systems. Re-projection ' ...
                         'on the fly is not supported at this time']);
                     
-% Call the appropriate function for planar or geographic data
+% Confirm R and Rq are oriented in the same N/S direction
+assert(strcmp(R.ColumnsStartFrom,Rq.ColumnsStartFrom), ...
+                        ['R and Rq must be oriented in the same N/S ' ...
+                        'direction. Check the ''ColumnsStartFrom'' ' ...
+                        'property in the Map/Geographic Cells Reference ' ... 
+                        'object']);
+                    
+% Confirm R and Rq are oriented in the same E/W direction
+assert(strcmp(R.RowsStartFrom,Rq.RowsStartFrom), ...
+                        ['R and Rq must be oriented in the same E/W ' ...
+                        'direction. Check the ''RowsStartFrom'' ' ...
+                        'property in the Map/Geographic Cells Reference ' ... 
+                        'object']);                    
+                    
+% If both R and Rq are planar, call the appropriate function
 if strcmp(R.CoordinateSystemType,'planar')
     Zq              =   maprasterinterp(Z,R,Rq,method);
 elseif strcmp(R.CoordinateSystemType,'geographic')
@@ -107,7 +167,16 @@ end
         % call mapinterp and reshape back into a grid, Zq
         Zq          =   mapinterp(Z,R,Xq,Yq,method);
         Zq          =   reshape(Zq,length(yq),length(xq)); 
-        Zq          =   flipud(Zq);
+        
+        % flip the data upside down if oriented S-N
+        if strcmp(R.ColumnsStartFrom,'north')
+            Zq      =   flipud(Zq);
+        end
+        
+        % flip the data left/right if oriented E-W
+        if strcmp(R.ColumnsStartFrom,'east')
+            Zq      =   fliplr(Zq);
+        end
     end
 
     % note, geointerp wants latq,lonq whereas mapinterp wants xq,yq
@@ -134,7 +203,16 @@ end
         % call geointerp and reshape back into a grid, Zq
         Zq          =   geointerp(Z,R,LATq,LONq,method);
         Zq          =   reshape(Zq,length(latq),length(lonq)); 
-        Zq          =   flipud(Zq);
+        
+        % flip the data upside down if oriented S-N
+        if strcmp(R.ColumnsStartFrom,'north')
+            Zq      =   flipud(Zq);
+        end
+        
+        % flip the data left/right if oriented E-W
+        if strcmp(R.ColumnsStartFrom,'east')
+            Zq      =   fliplr(Zq);
+        end
     end
 
 end
