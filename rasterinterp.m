@@ -76,7 +76,7 @@ assert(strcmp(R.CoordinateSystemType,Rq.CoordinateSystemType), ...
                         'geographic coordinate systems. Re-projection ' ...
                         'on the fly is not supported at this time']);
                     
-% If both R and Rq are planar, call the appropriate function
+% Call the appropriate function for planar or geographic data
 if strcmp(R.CoordinateSystemType,'planar')
     Zq              =   maprasterinterp(Z,R,Rq,method);
 elseif strcmp(R.CoordinateSystemType,'geographic')
