@@ -73,11 +73,10 @@ end
         Yq                  =   reshape(Y,size(Y,1)*size(Y,2),1);
 
         % call mapinterp and reshape back into a grid, Zq
-        Zq                  =   mapinterp(Z,R,Xq,Yq,'nearest');
         Zq                  =   mapinterp(Z,R,Xq,Yq,varargin{:});
         Zq                  =   reshape(Zq,length(yq),length(xq)); 
 
-        % meshgrid behavior changed in ver2019a and Zq needs to be flipped
+        % in ver2019a Zq needs to be flipped
         vrelease            =   version('-release');
         if strcmp(vrelease,'2019a')
             Zq              =   flipud(Zq);
@@ -102,10 +101,9 @@ end
         LONq                =   reshape(LON,size(LON,1)*size(LON,2),1);
         LATq                =   reshape(LAT,size(LAT,1)*size(LAT,2),1);
         % call geointerp and reshape back into a grid, Zq
-        Zq                  =   geointerp(Z,R,LATq,LONq,'nearest');
         Zq                  =   geointerp(Z,R,LATq,LONq,varargin{:});
         Zq                  =   reshape(Zq,length(latq),length(lonq)); 
-        % meshgrid behavior changed in ver2019a and Zq needs to be flipped ud
+        % in ver2019a and Zq needs to be flipped ud
         vrelease            =   version('-release');
         if strcmp(vrelease,'2019a')
             Zq              =   flipud(Zq);
