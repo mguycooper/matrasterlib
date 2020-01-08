@@ -1,4 +1,4 @@
-function Zq = rasterinterp(Z,R,Rq,method)
+function [Zq,Rq] = rasterinterp(Z,R,Rq,method)
 
 %RASTERINTERP rasterinterp(Z,R,Rq,method) Interpolate spatially referenced
 %raster Z associated with map/geographic raster reference object R onto new
@@ -50,18 +50,21 @@ function Zq = rasterinterp(Z,R,Rq,method)
 
 %   Examples
 %   
-%   rasterinterp requires as input the Map/Geographic Cells Reference
-%   object. This object is returned by geotiffread but can also be built if
-%   the lat/lon limits and cell size are known, as in the examples below.
-%   rasterinterp can be used to co-register two rasters that overlap to the
-%   same spatial extent and resolution so they can be compared on a cell by
-%   cell basis, which requires interpolation to a new grid. The new grid
-%   (Zq) is defined by Rq, which can be the Map/Geographic Cells Reference
-%   object of one of the two rasters, used as a template, or it can be a
-%   new grid altogether. In the examples below, the in-built 'topo' dataset
-%   is used and the Geographic Cells Reference object is built from
-%   scratch. rasterinterp is used to both subset and resample 'topo' to a
-%   new spatial extent and a new resolution.
+%   rasterinterp requires as input the Map/GeographicCellsReference or
+%   Map/GeographicPostingsReference object. This object is returned by
+%   geotiffread but can also be built if the lat/lon limits and cell size
+%   are known, as in the examples below. rasterinterp can be used to
+%   co-register two rasters that overlap to the same spatial extent and
+%   resolution so they can be compared on a cell by cell basis, which
+%   requires interpolation to a new grid. The new grid (Zq) is defined by
+%   Rq, which can be the Map/GeographicCellsReference or
+%   Map/GeographicPostingsReference object of one of the two rasters, used
+%   as a template, or it can be a new grid altogether, but care should be
+%   taken to ensure the correct interpretation is used (i.e. 'Cells' vs
+%   'Postings'). In the examples below, the in-built 'topo' dataset is used
+%   and the Geographic Cells Reference object is built from scratch.
+%   rasterinterp is used to both subset and resample 'topo' to a new
+%   spatial extent and a new resolution.
 
 %   Example 1 
 %   ---------
@@ -103,11 +106,15 @@ validateattributes(Z,   {'numeric', 'logical'}, ...
 % confirm R and Rq are either MapCells or GeographicCellsReference objects
 validateattributes(R, ...
                         {'map.rasterref.MapCellsReference', ...
-                        'map.rasterref.GeographicCellsReference'}, ...
+                        'map.rasterref.GeographicCellsReference', ...
+                        'map.rasterref.MapPostingsReference', ...
+                        'map.rasterref.GeographicPostingsReference'}, ...
                         {'scalar'}, 'rasterinterp', 'R', 2)
 validateattributes(Rq, ...
                         {'map.rasterref.MapCellsReference', ...
-                        'map.rasterref.GeographicCellsReference'}, ...
+                        'map.rasterref.GeographicCellsReference', ...
+                        'map.rasterref.MapPostingsReference', ...
+                        'map.rasterref.GeographicPostingsReference'}, ...
                         {'scalar'}, 'rasterinterp', 'Rq', 3)
                     
 % set interpolation to 'linear' or as user-defined
@@ -138,6 +145,14 @@ assert(strcmp(R.RowsStartFrom,Rq.RowsStartFrom), ...
                         'direction. Check the ''RowsStartFrom'' ' ...
                         'property in the Map/Geographic Cells Reference ' ... 
                         'object']);                    
+
+% check if R and or Rq are of type 'postings'. If so, tell the user to
+% convert to type 'cell' and exit
+assert(strcmp(R.RasterInterpretation,'cells') && ...
+        strcmp(Rq.RasterInterpretation,'cells'), ...
+        ['Input argument 2, R, and input argument 3, Rq, must be of type ' ...
+        '''cells'' rasterInterpretation. Use RPost2Cells.m to convert. ' ...
+        'Support for type ''postings'' will be provided in a future release']);
                     
 % if both R and Rq are planar/geographic, call the appropriate function
 if strcmp(R.CoordinateSystemType,'planar')
@@ -155,6 +170,12 @@ end
         xmin        =   Rq.XWorldLimits(1)+xps/2; % left limit
         xmax        =   Rq.XWorldLimits(2)-xps/2; % right limit
         xq          =   xmin:xps:xmax;
+
+        % note: the centroid adjustment is only necessary for 'Cells'
+        % interpretation. If 'Postings' interpretation is used this should
+        % not be necessary and will require somewhat substantial
+        % modifcation to handle the unique field names in the postings
+        % object, but will probably be worth it to ensure compatibility 
         
         % y direction
         yps         =   Rq.CellExtentInWorldY; % y pixel size
