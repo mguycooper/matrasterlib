@@ -9,7 +9,7 @@ function [h,coords] = plotRbox(R,varargin)
 
 % confirm mapping toolbox is installed
 assert(license('test','map_toolbox')==1, ...
-                        'rasterinterp requires Matlab''s Mapping Toolbox.')
+                        'plotRbox requires Matlab''s Mapping Toolbox.')
                     
 % confirm R is either MapCells or GeographicCellsReference objects
 validateattributes(R, ...
